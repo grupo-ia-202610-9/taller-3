@@ -5,7 +5,7 @@ El pipeline completo to_cnf() llama a todas las transformaciones en orden.
 
 from __future__ import annotations
 
-from src.logic_core import And, Atom, Formula, Not, Or
+from src.logic_core import And, Atom, Formula, Not, Or, Iff, Implies
 
 
 # --- FUNCION GUÍA SUMINISTRADA COMPLETA ---
@@ -60,8 +60,32 @@ def eliminate_iff(formula: Formula) -> Formula:
           y solo transforma cuando encuentras un Iff.
     """
     # === YOUR CODE HERE ===
-    raise NotImplementedError("Implementa eliminate_iff()")
+    if isinstance(formula, Atom):
+        return formula
+    if isinstance(formula, Iff):
+        left = eliminate_iff(formula.left)
+        right = eliminate_iff(formula.right)
+        return eliminate_iff(And(Implies(left, right), Implies(right, left)))
+    if isinstance(formula, And):
+        return And(*(eliminate_iff(c) for c in formula.conjuncts))
+    if isinstance(formula, Or):
+        return Or(*(eliminate_iff(d) for d in formula.disjuncts))
+    if isinstance(formula, Implies):
+        return Implies(eliminate_iff(formula.antecedent), eliminate_iff(formula.consequent))
+    if isinstance(formula, Not):
+        return Not(eliminate_iff(formula.operand))
+    return formula
     # === END YOUR CODE ===
+    """ === SECCIÓN IA ===
+
+    Prompt: Acabo de implementar la función eliminate_iff() en cnf_transform.py, la lógica esta bien o tiene fallas?
+    Respuesta: 
+        Cambios necesarios:
+        Agregar caso para Not con recursión
+        Agregar caso para Implies con recursión
+        Opcionalmente optimizar el caso Iff para no iterar innecesariamente
+
+    """
 
 
 def eliminate_implication(formula: Formula) -> Formula:
@@ -81,9 +105,37 @@ def eliminate_implication(formula: Formula) -> Formula:
           solo los nodos Implies.
     """
     # === YOUR CODE HERE ===
-    raise NotImplementedError("Implementa eliminate_implication()")
+    if isinstance(formula, Atom):
+        return formula
+    if isinstance(formula, And):
+        return And(*(eliminate_implication(c) for c in formula.conjuncts))
+    if isinstance(formula, Or):
+        return Or(*(eliminate_implication(d) for d in formula.disjuncts))
+    if isinstance(formula, Implies):
+        antecedent = eliminate_implication(formula.antecedent)
+        consequent = eliminate_implication(formula.consequent)
+        return Or(Not(antecedent), consequent)
+    if isinstance(formula, Not):
+        return Not(eliminate_implication(formula.operand))
+    return formula
     # === END YOUR CODE ===
 
+    """ === SECCIÓN IA ===
+
+    prompt: revisa la lógica de la función eliminate implication en cnf_transform.py y dime si esta funcionando correctamente
+    respuesta: 
+            Hallazgos (por severidad):
+
+            Sin fallas funcionales en eliminate_implication
+            La lógica en cnf_transform.py:90 es correcta para su objetivo: recorre recursivamente y transforma Implies(a, b) en Or(Not(a), b).
+            Validación: los tests de esa función pasan (4/4) en test_cnf.py con el filtro TestEliminateImplication.
+
+            Mejora menor de diseño
+            El caso Iff en cnf_transform.py:107 no es necesario dentro de esta función si respetas el pipeline de cnf_transform.py:224, porque ahí primero se ejecuta eliminate_iff. No rompe nada, solo es redundante.
+
+            Contexto importante para pruebas globales
+            Si pruebas to_cnf completo, hoy falla por otra función pendiente: cnf_transform.py:133, no por eliminate_implication.
+    """
 
 def push_negation_inward(formula: Formula) -> Formula:
     """
@@ -111,8 +163,29 @@ def push_negation_inward(formula: Formula) -> Formula:
           asi que no necesitas manejar esos tipos.
     """
     # === YOUR CODE HERE ===
-    raise NotImplementedError("Implementa push_negation_inward()")
+    if isinstance(formula, Atom):
+        return formula
+    if isinstance(formula, And):
+        return And(*(push_negation_inward(c) for c in formula.conjuncts))
+    if isinstance(formula, Or):
+        return Or(*(push_negation_inward(d) for d in formula.disjuncts))
+    if isinstance(formula, Not):
+        if isinstance(formula.operand, And):
+            return Or(*(push_negation_inward(Not(c)) for c in formula.operand.conjuncts))
+        if isinstance(formula.operand, Or):
+            return And(*(push_negation_inward(Not(d)) for d in formula.operand.disjuncts))
+    return formula
     # === END YOUR CODE ===
+    """ === SECCIÓN IA ===
+
+    prompt: return Or(*(Not(c) for c in formula.operand.conjuncts))
+    respuesta: 
+        Qué cambiar (idea correcta):
+        En vez de negar después de transformar el hijo, hay que transformar la negación del hijo:
+        Para Not(And(...)): usar push_negation_inward(Not(c)) en cada c.
+        Para Not(Or(...)): usar push_negation_inward(Not(d)) en cada d.
+        Mantener Not(Atom) como está.
+    """
 
 
 def distribute_or_over_and(formula: Formula) -> Formula:
@@ -138,7 +211,24 @@ def distribute_or_over_and(formula: Formula) -> Formula:
           asi que solo veras Atom, Not(Atom), And y Or.
     """
     # === YOUR CODE HERE ===
-    raise NotImplementedError("Implementa distribute_or_over_and()")
+    if isinstance(formula, Atom):
+        return formula
+    if isinstance(formula, Not):
+        return Not(distribute_or_over_and(formula.operand))
+    if isinstance(formula, And):
+        return And(*(distribute_or_over_and(c) for c in formula.conjuncts))
+    if isinstance(formula, Or):
+        disjuncts = [distribute_or_over_and(d) for d in formula.disjuncts]
+        for index, disjunct in enumerate(disjuncts):
+            if isinstance(disjunct, And):
+                other_disjuncts = [d for i, d in enumerate(disjuncts) if i != index]
+                distributed = [
+                    distribute_or_over_and(Or(*(other_disjuncts + [conjunct])))
+                    for conjunct in disjunct.conjuncts
+                ]
+                return distribute_or_over_and(And(*distributed))
+        return Or(*disjuncts)
+    return formula
     # === END YOUR CODE ===
 
 
@@ -164,9 +254,41 @@ def flatten(formula: Formula) -> Formula:
           Si al final solo queda 1 elemento, retornalo directamente.
     """
     # === YOUR CODE HERE ===
-    raise NotImplementedError("Implementa flatten()")
+    if isinstance(formula, Atom):
+        return formula
+    if isinstance(formula, Not):
+        return Not(flatten(formula.operand))
+    if isinstance(formula, And):
+        flatten_conjunct = []
+        for index, conjunct in enumerate(formula.conjuncts):
+            conjunct = flatten(conjunct)
+            if isinstance(conjunct, And):
+                flatten_conjunct.extend(flatten(c) for c in conjunct.conjuncts)
+            else:
+                flatten_conjunct.append(conjunct)
+        return And(*(flatten_conjunct))
+    if isinstance(formula, Or):
+        flatten_disjunct = []
+        for index, disjunct in enumerate(formula.disjuncts):
+            disjunct = flatten(disjunct)
+            if isinstance(disjunct, Or):
+                flatten_disjunct.extend(flatten(d) for d in disjunct.disjuncts)
+            else:
+                flatten_disjunct.append(disjunct)
+        return Or(*(flatten_disjunct))
+    return formula
     # === END YOUR CODE ===
+    """ === SECCIÓN IA === Generado por la IA
 
+    prompt: el And de flatten y esta bien?
+    respuesta: Te señalé que al inicio tenía errores estructurales (iteración y aplanado incompleto), y te expliqué que debía recorrer hijos, aplanar recursivamente y extender cuando encontrara And anidado.
+
+    prompt: Volviste a pedir revisión de flatten después de ajustar el código.
+    respuesta: Confirmé que el bloque And ya estaba funcionando con un caso mínimo tipo And(And(a,b),c), pero también te marqué que todavía faltaba completar el bloque Or para considerar la función completa.
+
+    prompt: Preguntaste si flatten ya estaba bien del todo.
+    respuesta: Validé la implementación final de And y Or, y confirmé con pruebas que flatten pasó correctamente la suite correspondiente.
+    """
 
 # --- PIPELINE COMPLETO ---
 
