@@ -41,6 +41,80 @@ def crear_kb() -> KnowledgeBase:
 
     # === YOUR CODE HERE ===
 
+    X = Term("$X")
+    Y = Term("$Y")
+    O = Term("$O")
+
+    kb.add_fact(Predicate("coartada_verificada", (enfermera_campos,)))
+    kb.add_fact(Predicate("hereda_actualmente", (abogado_restrepo,)))
+    kb.add_fact(Predicate("hereda_actualmente", (sobrino_esteban,)))
+    kb.add_fact(Predicate("excluido_si_cambia_testamento", (abogado_restrepo,)))
+    kb.add_fact(Predicate("excluido_si_cambia_testamento", (sobrino_esteban,)))
+    kb.add_fact(Predicate("hereda_con_nuevo_testamento", (secretaria_luna,)))
+    kb.add_fact(Predicate("huellas_en", (sobrino_esteban, vaso_adulterado)))
+    kb.add_fact(Predicate("objeto_crimen", (vaso_adulterado,)))
+    kb.add_fact(Predicate("sin_coartada_verificada", (abogado_restrepo,)))
+    kb.add_fact(Predicate("sin_coartada_verificada", (sobrino_esteban,)))
+    kb.add_fact(Predicate("sin_coartada_verificada", (secretaria_luna,)))
+    kb.add_fact(Predicate("acusa", (sobrino_esteban, secretaria_luna)))
+    kb.add_fact(Predicate("acusa", (abogado_restrepo, sobrino_esteban)))
+    kb.add_fact(Predicate("coartada", (secretaria_luna, sobrino_esteban)))
+
+    kb.add_rule(Rule(
+        head=Predicate("descartado", (X,)),
+        body=(Predicate("coartada_verificada", (X,)),),
+    ))
+
+    kb.add_rule(Rule(
+        head=Predicate("motivo_doble", (X,)),
+        body=(
+            Predicate("hereda_actualmente", (X,)),
+            Predicate("excluido_si_cambia_testamento", (X,)),
+        ),
+    ))
+
+    kb.add_rule(Rule(
+        head=Predicate("evidencia_fisica", (X,)),
+        body=(
+            Predicate("huellas_en", (X, O)),
+            Predicate("objeto_crimen", (O,)),
+        ),
+    ))
+
+    kb.add_rule(Rule(
+        head=Predicate("culpable", (X,)),
+        body=(
+            Predicate("motivo_doble", (X,)),
+            Predicate("sin_coartada_verificada", (X,)),
+            Predicate("evidencia_fisica", (X,)),
+        ),
+    ))
+
+    kb.add_rule(Rule(
+        head=Predicate("desvio_sospechoso", (X, Y)),
+        body=(
+            Predicate("culpable", (X,)),
+            Predicate("acusa", (X, Y)),
+        ),
+    ))
+
+    kb.add_rule(Rule(
+        head=Predicate("encubridor", (X,)),
+        body=(
+            Predicate("coartada", (X, Y)),
+            Predicate("culpable", (Y,)),
+        ),
+    ))
+
+    kb.add_rule(Rule(
+        head=Predicate("acusacion_corroborada", (X, Y)),
+        body=(
+            Predicate("acusa", (X, Y)),
+            Predicate("motivo_doble", (X,)),
+            Predicate("evidencia_fisica", (Y,)),
+        ),
+    ))
+
     # === END YOUR CODE ===
 
     return kb

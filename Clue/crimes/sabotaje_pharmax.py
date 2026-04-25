@@ -42,6 +42,75 @@ def crear_kb() -> KnowledgeBase:
 
     # === YOUR CODE HERE ===
 
+    X = Term("$X")
+    E = Term("$E")
+    L = Term("$L")
+
+    kb.add_fact(Predicate("documentacion_ausencia_pais", (dra_santos,)))
+    kb.add_fact(Predicate("registro_conferencia_verificado", (director_vega,)))
+    kb.add_fact(Predicate("sin_coartada", (tec_rios,)))
+    kb.add_fact(Predicate("sin_coartada", (asistente_mora,)))
+    kb.add_fact(Predicate("acceso_registrado", (tec_rios, sala_cultivos)))
+    kb.add_fact(Predicate("acceso_registrado", (asistente_mora, sala_cultivos)))
+    kb.add_fact(Predicate("lugar_saboteado", (sala_cultivos,)))
+    kb.add_fact(Predicate("recibio_pagos", (tec_rios, syntek_corp)))
+    kb.add_fact(Predicate("empresa_beneficiada", (syntek_corp,)))
+    kb.add_fact(Predicate("acusa", (asistente_mora, tec_rios)))
+    kb.add_fact(Predicate("coartada", (tec_rios, asistente_mora)))
+
+    kb.add_rule(Rule(
+        head=Predicate("coartada_verificada", (X,)),
+        body=(Predicate("documentacion_ausencia_pais", (X,)),),
+    ))
+
+    kb.add_rule(Rule(
+        head=Predicate("coartada_verificada", (X,)),
+        body=(Predicate("registro_conferencia_verificado", (X,)),),
+    ))
+
+    kb.add_rule(Rule(
+        head=Predicate("descartado", (X,)),
+        body=(Predicate("coartada_verificada", (X,)),),
+    ))
+
+    kb.add_rule(Rule(
+        head=Predicate("conflicto_intereses", (X, E)),
+        body=(
+            Predicate("recibio_pagos", (X, E)),
+            Predicate("empresa_beneficiada", (E,)),
+        ),
+    ))
+
+    kb.add_rule(Rule(
+        head=Predicate("motivo_economico", (X,)),
+        body=(Predicate("conflicto_intereses", (X, E)),),
+    ))
+
+    kb.add_rule(Rule(
+        head=Predicate("acceso_en_momento", (X,)),
+        body=(
+            Predicate("acceso_registrado", (X, L)),
+            Predicate("lugar_saboteado", (L,)),
+        ),
+    ))
+
+    kb.add_rule(Rule(
+        head=Predicate("culpable", (X,)),
+        body=(
+            Predicate("sin_coartada", (X,)),
+            Predicate("motivo_economico", (X,)),
+            Predicate("acceso_en_momento", (X,)),
+        ),
+    ))
+
+    kb.add_rule(Rule(
+        head=Predicate("denuncia_informada", (X, E)),
+        body=(
+            Predicate("acusa", (X, E)),
+            Predicate("acceso_en_momento", (X,)),
+        ),
+    ))
+
     # === END YOUR CODE ===
 
     return kb

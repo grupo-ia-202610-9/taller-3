@@ -36,6 +36,54 @@ def crear_kb() -> KnowledgeBase:
     frasco_arsenico = Term("frasco_arsenico")
 
     # === YOUR CODE HERE ===
+    
+    X=Term("$X")
+    Y=Term("$Y")
+    
+    kb.add_fact(Predicate('arma_del_crimen', (frasco_arsenico,)))
+    kb.add_fact(Predicate('huellas_en', (reynaldo, frasco_arsenico)))
+    kb.add_fact(Predicate('lejos_de_escena', (pablo,)))
+    kb.add_fact(Predicate('lejos_de_escena', (bernardo,)))
+    kb.add_fact(Predicate('testimonio_contra', (pablo, reynaldo)))
+    kb.add_fact(Predicate('coartada', (margot, reynaldo)))
+    kb.add_fact(Predicate('coartada', (reynaldo, margot)))
+    kb.add_fact(Predicate('sin_coartada_verificada', (reynaldo,)))
+    
+    
+    kb.add_rule(Rule(
+        head=Predicate('evidencia_directa', (X,)),
+        body=(Predicate('huellas_en', (X, Y)), Predicate('arma_del_crimen', (Y,)))
+    ))
+    
+    kb.add_rule(Rule(
+        head=Predicate('descartado', (X,)),
+        body=(Predicate('lejos_de_escena', (X,)),)
+    ))
+    
+    kb.add_rule(Rule(
+        head=Predicate('testimonio_confiable', (X, Y)),
+        body=(Predicate('testimonio_contra', (X, Y)), Predicate('descartado', (X,)))
+    ))
+    
+    kb.add_rule(Rule(
+        head=Predicate('culpable', (X,)),
+        body=(Predicate('evidencia_directa', (X,)), Predicate('sin_coartada_verificada', (X,)))
+    ))
+    
+    kb.add_rule(Rule(
+        head=Predicate('encubridor', (X,)),
+        body=(Predicate('coartada', (X, Y)), Predicate('culpable', (Y,)))
+    ))
+    
+    kb.add_rule(Rule(
+        head=Predicate('coartada_cruzada', (X, Y)),
+        body=(Predicate('coartada', (X, Y)), Predicate('coartada', (Y, X)))
+    ))
+    
+    kb.add_rule(Rule(
+        head=Predicate('coartada_cruzada', (Y, X)),
+        body=(Predicate('coartada', (X, Y)), Predicate('coartada', (Y, X)))
+    ))
 
     # === END YOUR CODE ===
 
